@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/home/ashraful/Desktop/RDT/rdt.c" "/home/ashraful/Desktop/RDT/cmake-build-debug/CMakeFiles/RTP.dir/rdt.c.o"
+  "C:/Users/User/Desktop/RTP/rdt.c" "C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/RTP.dir/rdt.c.obj"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

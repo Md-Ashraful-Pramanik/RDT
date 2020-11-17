@@ -1,7 +1,9 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/RTP.dir/rdt.c.o"
-  "RTP"
+  "CMakeFiles/RTP.dir/rdt.c.obj"
+  "RTP.exe"
+  "RTP.exe.manifest"
   "RTP.pdb"
+  "libRTP.dll.a"
 )
 
 # Per-language clean rules from dependency scanning.

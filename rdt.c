@@ -11,7 +11,7 @@
     #include <windows.h>
     HANDLE  hConsole;
     #define RESET_COLOR 7
-    #define NORMAL_COLOR 224
+    #define NORMAL_COLOR 112
 #endif
 
 /* ./rdt | aha --black --title 'rdt' > rdt.html */
@@ -127,7 +127,7 @@ void printColor(char* str, int windowsColorNumber, int linuxColorNumber, int lin
 }
 
 void printInfo(char* str){
-    printColor(str, 112, 93, 7);
+    printColor(str, 224, 93, 7);
 }
 void printSuccess(char* str){
     printColor(str, 47, 42, 6);

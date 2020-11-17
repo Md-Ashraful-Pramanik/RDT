@@ -1,3 +1,5 @@
-/home/ashraful/Desktop/RDT/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/ashraful/Desktop/RDT/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/ashraful/Desktop/RDT/cmake-build-debug/CMakeFiles/RTP.dir
+C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/RTP.dir
+C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/color_printer_windows.dir
+C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/color_printer_linux.dir
+C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/edit_cache.dir
