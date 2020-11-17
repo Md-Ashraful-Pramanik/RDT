@@ -111,7 +111,7 @@ void resetColor(){
     printf("\n");
 }
 
-void printColor(char* str, int windowsColorNumberint, int linuxColorNumber){
+void printColor(char* str, int windowsColorNumber, int linuxColorNumber){
     #ifdef __unix__    
         printf("\e[0m");  
         printf("\e[6;%dm %-50s", linuxColorNumber, str);
@@ -141,7 +141,7 @@ void printError(char* str){
 
 /* called from layer 5, passed the data to be sent to other side */
 void A_output(struct msg message) {
-    printInfo("In A_outputprintInfo");
+    printInfo("In A_output");
     if (previousSeqNum != lastAckSeqNum) {
         printError("***Drop A packet. Because previous message is transmitting.");
         return;
@@ -167,7 +167,7 @@ void B_output(struct msg message) {
 
 /* called from layer 3, when a packet arrives for layer 4 */
 void A_input(struct pkt packet) {
-    printInfo("In A_inputprintInfo");
+    printInfo("In A_input");
 
     if (previousSeqNum == lastAckSeqNum) {
         printActivity("Ignore this input because already get ack.");
@@ -179,7 +179,7 @@ void A_input(struct pkt packet) {
     if (packet.acknum == packet.seqnum && newCheckSum == packet.checksum) {
         totalAck++;
         char str[200];
-        sprintf(str, "%s :%d", "Get Ack Successfully. Total Acknowledgment: ", totalAck);
+        sprintf(str, "%s%d", "Get Ack Successfully. Total Acknowledgment: ", totalAck);
         printSuccess(str);
 
         lastAckSeqNum = packet.acknum;
@@ -191,7 +191,7 @@ void A_input(struct pkt packet) {
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void) {
-    printInfo("In A_timerinterruptprintInfo");
+    printInfo("In A_timerinterrupt");
 
     if (previousSeqNum == lastAckSeqNum) {
         printActivity("Ignore this interrupt because already get ack.");
@@ -217,7 +217,7 @@ void A_init(void) {
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet) {
-    printInfo("In B_inputprintInfo");
+    printInfo("In B_input");
 
     int newCheckSum = packet.seqnum;
     newCheckSum += sum(packet.payload);
@@ -228,7 +228,7 @@ void B_input(struct pkt packet) {
     } else if (newCheckSum == packet.checksum) {
         totalSuccessfulPck++;
         char str[200];
-        sprintf(str, "%s :%d", "Get Message Successfully, Total Successful: ", totalSuccessfulPck);
+        sprintf(str, "%s%d", "Get Message Successfully, Total Successful: ", totalSuccessfulPck);
         printSuccess(str);
 
         lastSuccessfulSeqNum = packet.seqnum;
@@ -250,7 +250,7 @@ void B_timerinterrupt(void) {
 /* the following rouytine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void) {
-    printInfo("In B_initprintInfo");
+    printInfo("In B_init");
 
     totalSuccessfulPck = 0;
     lastSuccessfulSeqNum = -1;
@@ -302,11 +302,9 @@ void insertevent(struct event *p);
 int main() {
     //setbuf(stdout, NULL);
     /********************Change Start***************************/
-
     #ifdef _WIN32   
         hConsole = GetStdHandle(STD_OUTPUT_HANDLE); /// Added for coloring
     #endif
-
     printColor(" ", NORMAL_COLOR, NORMAL_COLOR);
     /********************Change End***************************/
     
