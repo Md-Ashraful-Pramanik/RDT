@@ -1,5 +1,5 @@
 *.exe
-*.0
+*.o
 CMakeLists.txt
 main.cpp
 cmake-build-debug

@@ -1,9 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
 
-HANDLE  hConsole;
+#ifdef __unix__      
+    #define OS UNIX
+    #define RESET_COLOR 0
+    #define NORMAL_COLOR 100
+#endif
+#ifdef _WIN32 
+    #include <windows.h>
+    HANDLE  hConsole;
+    #define RESET_COLOR 7
+    #define NORMAL_COLOR 224
+#endif
+
+/* ./rdt | aha --black --title 'rdt' > rdt.html */
 
 /* ******************************************************************
  ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: SLIGHTLY MODIFIED
@@ -90,29 +101,42 @@ int sum(char msg[]) {
     return s;
 }
 
-void printInfo(char* str){
-    SetConsoleTextAttribute(hConsole, 112);
-    printf("%-50s", str);
-    SetConsoleTextAttribute(hConsole, 224);
+void resetColor(){
+    #ifdef __unix__      
+        printf("\e[0m");
+    #endif
+    #ifdef _WIN32 
+        SetConsoleTextAttribute(hConsole, RESET_COLOR);
+    #endif
     printf("\n");
+}
+
+void printColor(char* str, int windowsColorNumberint, int linuxColorNumber){
+    #ifdef __unix__    
+        printf("\e[0m");  
+        printf("\e[6;%dm %-50s", linuxColorNumber, str);
+        printf("\e[0m");  
+        printf("\e[1;%dm", NORMAL_COLOR);
+    #endif
+    #ifdef _WIN32 
+        SetConsoleTextAttribute(hConsole, windowsColorNumber);
+        printf("%-50s", str);
+        SetConsoleTextAttribute(hConsole, NORMAL_COLOR);
+    #endif
+    printf("\n");
+}
+
+void printInfo(char* str){
+    printColor(str, 112, 7);
 }
 void printSuccess(char* str){
-    SetConsoleTextAttribute(hConsole, 47);
-    printf("%-70s", str);
-    SetConsoleTextAttribute(hConsole, 224);
-    printf("\n");
+    printColor(str, 47, 42);
 }
 void printActivity(char* str){
-    SetConsoleTextAttribute(hConsole, 63);
-    printf("%-70s", str);
-    SetConsoleTextAttribute(hConsole, 224);
-    printf("\n");
+    printColor(str, 63, 44);
 }
 void printError(char* str){
-    SetConsoleTextAttribute(hConsole, 79);
-    printf("%-70s", str);
-    SetConsoleTextAttribute(hConsole, 224);
-    printf("\n");
+    printColor(str, 79, 41);
 }
 
 /* called from layer 5, passed the data to be sent to other side */
@@ -276,9 +300,16 @@ void generate_next_arrival(void);
 void insertevent(struct event *p);
 
 int main() {
-    setbuf(stdout, NULL);
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE); /// Added for coloring
-    SetConsoleTextAttribute(hConsole, 224);/// Added for coloring
+    //setbuf(stdout, NULL);
+    /********************Change Start***************************/
+
+    #ifdef _WIN32   
+        hConsole = GetStdHandle(STD_OUTPUT_HANDLE); /// Added for coloring
+    #endif
+
+    printColor(" ", NORMAL_COLOR, NORMAL_COLOR);
+    /********************Change End***************************/
+    
     struct event *eventptr;
     struct msg msg2give;
     struct pkt pkt2give;
@@ -358,7 +389,9 @@ int main() {
             time, nsim);
 
 
-    SetConsoleTextAttribute(hConsole, 7);/// Added for coloring
+    /********************Change Start***************************/
+    resetColor(); /// Added for coloring (RESET COLOR)
+    /********************Change End***************************/
 }
 
 void init() /* initialize the simulator */
