@@ -111,10 +111,10 @@ void resetColor(){
     printf("\n");
 }
 
-void printColor(char* str, int windowsColorNumber, int linuxColorNumber){
+void printColor(char* str, int windowsColorNumber, int linuxColorNumber, int linuxColorNumber2){
     #ifdef __unix__    
         printf("\e[0m");  
-        printf("\e[6;%dm %-50s", linuxColorNumber, str);
+        printf("\e[%d;%dm %-50s", linuxColorNumber2, linuxColorNumber, str);
         printf("\e[0m");  
         printf("\e[1;%dm", NORMAL_COLOR);
     #endif
@@ -127,16 +127,16 @@ void printColor(char* str, int windowsColorNumber, int linuxColorNumber){
 }
 
 void printInfo(char* str){
-    printColor(str, 112, 7);
+    printColor(str, 112, 93, 7);
 }
 void printSuccess(char* str){
-    printColor(str, 47, 42);
+    printColor(str, 47, 42, 6);
 }
 void printActivity(char* str){
-    printColor(str, 63, 44);
+    printColor(str, 63, 44, 6);
 }
 void printError(char* str){
-    printColor(str, 79, 41);
+    printColor(str, 79, 41, 6);
 }
 
 /* called from layer 5, passed the data to be sent to other side */
@@ -305,7 +305,7 @@ int main() {
     #ifdef _WIN32   
         hConsole = GetStdHandle(STD_OUTPUT_HANDLE); /// Added for coloring
     #endif
-    printColor(" ", NORMAL_COLOR, NORMAL_COLOR);
+    printColor(" ", NORMAL_COLOR, NORMAL_COLOR, 6);
     /********************Change End***************************/
     
     struct event *eventptr;
