@@ -2,6 +2,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __unix__      
+    #define OS UNIX
+    #define RESET_COLOR 0
+    #define NORMAL_COLOR 100
+#endif
+#ifdef _WIN32 
+    #include <windows.h>
+    HANDLE  hConsole;
+    #define RESET_COLOR 7
+    #define NORMAL_COLOR 224
+#endif
+
+/* ./rdt | aha --black --title 'rdt' > rdt.html */
+
 /* ******************************************************************
  ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: SLIGHTLY MODIFIED
  FROM VERSION 1.1 of J.F.Kurose
@@ -27,6 +41,10 @@
 #define ON 1
 #define A 0
 #define B 1
+
+#define true 1
+#define false 0
+#define bool char
 /* and write a routine called B_output */
 
 /* a "msg" is the data unit passed from layer 5 (teachers code) to layer  */
@@ -57,44 +75,90 @@ void tolayer5(int AorB, char datasent[20]);
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
-#define MAXSEQ 5
-#define QUEUE_SIZE 3
+#define MAX_SEQ_NUM 2
 #define MSG_DATA_SIZE 20
+#define RETRANSMIT_RATE 10
+#define NEXT_SEQ_NUM(n) (((n)+1)%MAX_SEQ_NUM)
 
-int currentSeqNum;
-int queueFront;
-int lastAckSeqNum;
+
+/// A
+char currentSeqNum;
+char previousSeqNum;
+char lastAckSeqNum;
+int totalAck;
+struct pkt packet;
+
+/// B
+int totalSuccessfulPck;
 int lastSuccessfulSeqNum;
-struct pkt senderQueue[QUEUE_SIZE];
-// a mapping which maps seq number to array index of queue
-int seqNumToQueueIndex[MAXSEQ];
 
-int sum(char msg[]){
+/// A, B both
+int sum(char msg[]) {
     int i, s = 0;
     for (i = 0; i < MSG_DATA_SIZE; ++i) {
-        s+=msg[i];
+        s += msg[i];
     }
     return s;
 }
 
+void resetColor(){
+    #ifdef __unix__      
+        printf("\e[0m");
+    #endif
+    #ifdef _WIN32 
+        SetConsoleTextAttribute(hConsole, RESET_COLOR);
+    #endif
+    printf("\n");
+}
+
+void printColor(char* str, int windowsColorNumber, int linuxColorNumber, int linuxColorNumber2){
+    #ifdef __unix__    
+        printf("\e[0m");  
+        printf("\e[%d;%dm %-70s", linuxColorNumber2, linuxColorNumber, str);
+        printf("\e[0m");  
+        printf("\e[1;%dm", NORMAL_COLOR);
+    #endif
+    #ifdef _WIN32 
+        SetConsoleTextAttribute(hConsole, windowsColorNumber);
+        printf("%-70s", str);
+        SetConsoleTextAttribute(hConsole, NORMAL_COLOR);
+    #endif
+    printf("\n");
+}
+
+void printInfo(char* str){
+    printColor(str, 112, 93, 7);
+}
+void printSuccess(char* str){
+    printColor(str, 47, 42, 6);
+}
+void printActivity(char* str){
+    printColor(str, 63, 44, 6);
+}
+void printError(char* str){
+    printColor(str, 79, 41, 6);
+}
+
 /* called from layer 5, passed the data to be sent to other side */
 void A_output(struct msg message) {
-    struct pkt packet;
+    printInfo("In A_output");
+    if (previousSeqNum != lastAckSeqNum) {
+        printError("***Drop A packet. Because previous message is transmitting.");
+        return;
+    }
 
     packet.seqnum = currentSeqNum;
     strcpy(packet.payload, message.data);
     packet.checksum = packet.seqnum;
 
-    packet.checksum+=sum(packet.payload);
+    packet.checksum += sum(packet.payload);
+    previousSeqNum = currentSeqNum;
+    currentSeqNum = NEXT_SEQ_NUM(currentSeqNum);
 
-    senderQueue[queueFront] = packet;
-    seqNumToQueueIndex[currentSeqNum] = queueFront;
-
-    queueFront = (queueFront + 1) % QUEUE_SIZE;
-    currentSeqNum = (currentSeqNum + 1) % MAXSEQ;
-
+    printActivity("Sending a new Packet.");
     tolayer3(A, packet);
-    starttimer(A, 5);
+    printActivity("Start a timer");
+    starttimer(A, RETRANSMIT_RATE);
 }
 
 /* need be completed only for extra credit */
@@ -103,73 +167,108 @@ void B_output(struct msg message) {
 }
 
 /* called from layer 3, when a packet arrives for layer 4 */
-void A_input(struct pkt packet) {
-    if(packet.acknum != packet.seqnum)
-        goto RETRANSMIT;
-    int newCheckSum = packet.seqnum + packet.acknum;
-    newCheckSum+=sum(packet.payload);
+void A_input(struct pkt receivedPacket) {
+    printInfo("In A_input");
 
-    if (newCheckSum == packet.checksum) {
-        lastAckSeqNum = packet.acknum;
+    if (previousSeqNum == lastAckSeqNum) {
+        printActivity("Ignore this input because already get ack.");
         return;
     }
 
-    RETRANSMIT:
-    tolayer3(A, senderQueue[seqNumToQueueIndex[packet.seqnum]]);
+    int newCheckSum = receivedPacket.seqnum + receivedPacket.acknum;
+
+    if(newCheckSum == receivedPacket.checksum){
+        if (receivedPacket.acknum == receivedPacket.seqnum) {
+            totalAck++;
+            char str[200];
+            sprintf(str, "%s%d", "Get Ack Successfully. Total Acknowledgment: ", totalAck);
+            printSuccess(str);
+
+            lastAckSeqNum = receivedPacket.acknum;
+            printActivity("Stop Timer");
+            stoptimer(A);
+            return;
+        } else
+            printError("Get a Negative ACK from B.");
+    }
+    else
+        printError("Corrupted packet received.");
+
+//    printActivity("Stop Timer");
+//    stoptimer(A);
+//    printActivity("Retransmit Packet");
+//    tolayer3(A, packet);
+//    printActivity("Start a timer");
 }
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void) {
-    //stoptimer(A);
+    printInfo("In A_timerinterrupt");
 
-    if (lastAckSeqNum != currentSeqNum) {
-        int i;
-        for (i = lastAckSeqNum+1; i <= currentSeqNum; ++i) {
-            tolayer3(A, senderQueue[seqNumToQueueIndex[i]]);
-        }
+    if (previousSeqNum == lastAckSeqNum) {
+        printActivity("Ignore this interrupt because already get ack.");
+        return;
     }
+    //printf("Retransmit from timer interrupt.");
+    printActivity("Retransmit Packet");
+    tolayer3(A, packet);
+    starttimer(A, RETRANSMIT_RATE);
 }
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init(void) {
+    printInfo("In A_init");
     currentSeqNum = 0;
-    queueFront = 0;
     lastAckSeqNum = -1;
-    // starttimer(A, 5);
+    previousSeqNum = -1;
+    totalAck = 0;
 }
 
 /* Note that with simplex transfer from a-to-B, there is no B_output() */
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet) {
-    if ((lastSuccessfulSeqNum + 1) % MAXSEQ != packet.seqnum)
-        return;
+    printInfo("In B_input");
 
     int newCheckSum = packet.seqnum;
-    newCheckSum+=sum(packet.payload);
+    newCheckSum += sum(packet.payload);
+    packet.acknum = packet.seqnum;
 
-    if (newCheckSum == packet.checksum) {
+    if (packet.seqnum == lastSuccessfulSeqNum) {
+        printActivity("Ignore this message because already get this message.");
+        printSuccess("Sending ACK");
+    } else if (newCheckSum == packet.checksum) {
+        totalSuccessfulPck++;
+        char str[200];
+        sprintf(str, "%s%d", "Get Message Successfully, Total Successful: ", totalSuccessfulPck);
+        printSuccess(str);
+
+        printSuccess("Sending Packet to Layer5");
         lastSuccessfulSeqNum = packet.seqnum;
-        packet.acknum = packet.seqnum;
-        printf("Get msg with seq number: %d", lastSuccessfulSeqNum);
         tolayer5(B, packet.payload);
+
+        printSuccess("Sending ACK");
+    } else {
+        packet.acknum = lastSuccessfulSeqNum;
+        printError("Corrupted packet received. Sending Negative ACK");
     }
 
-    packet.acknum = lastSuccessfulSeqNum;
-    packet.checksum += packet.acknum;
-
+    packet.checksum = packet.seqnum + packet.acknum;
     tolayer3(B, packet);
 }
 
 /* called when B's timer goes off */
 void B_timerinterrupt(void) {
-    printf("  B_timerinterrupt: B doesn't have a timer. ignore.\n");
+    printf(" B_timerinterrupt: B doesn't have a timer. ignore.");
 }
 
 /* the following rouytine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void) {
+    printInfo("In B_init");
+
+    totalSuccessfulPck = 0;
     lastSuccessfulSeqNum = -1;
 }
 
@@ -217,6 +316,14 @@ void generate_next_arrival(void);
 void insertevent(struct event *p);
 
 int main() {
+    //setbuf(stdout, NULL);
+    /********************Change Start***************************/
+    #ifdef _WIN32   
+        hConsole = GetStdHandle(STD_OUTPUT_HANDLE); /// Added for coloring
+    #endif
+    printColor(" ", NORMAL_COLOR, NORMAL_COLOR, 6);
+    /********************Change End***************************/
+    
     struct event *eventptr;
     struct msg msg2give;
     struct pkt pkt2give;
@@ -294,6 +401,11 @@ int main() {
     printf(
             " Simulator terminated at time %f\n after sending %d msgs from layer5\n",
             time, nsim);
+
+
+    /********************Change Start***************************/
+    resetColor(); /// Added for coloring (RESET COLOR)
+    /********************Change End***************************/
 }
 
 void init() /* initialize the simulator */
@@ -485,7 +597,7 @@ void tolayer3(int AorB, struct pkt packet) {
     if (jimsrand() < lossprob) {
         nlost++;
         if (TRACE > 0)
-            printf("          TOLAYER3: packet being lost\n");
+            printError("          TOLAYER3: packet being lost");
         return;
     }
 
@@ -531,7 +643,7 @@ void tolayer3(int AorB, struct pkt packet) {
         else
             mypktptr->acknum = 999999;
         if (TRACE > 0)
-            printf("          TOLAYER3: packet being corrupted\n");
+            printError("          TOLAYER3: packet being corrupted");
     }
 
     if (TRACE > 2)

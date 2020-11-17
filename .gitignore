@@ -4,3 +4,4 @@ CMakeLists.txt
 main.cpp
 cmake-build-debug
 .idea
+*.zip

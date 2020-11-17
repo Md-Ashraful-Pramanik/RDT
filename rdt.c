@@ -77,7 +77,7 @@ void tolayer5(int AorB, char datasent[20]);
 
 #define MAX_SEQ_NUM 2
 #define MSG_DATA_SIZE 20
-#define RETRANSMIT_RATE 11
+#define RETRANSMIT_RATE 10
 #define NEXT_SEQ_NUM(n) (((n)+1)%MAX_SEQ_NUM)
 
 
@@ -114,13 +114,13 @@ void resetColor(){
 void printColor(char* str, int windowsColorNumber, int linuxColorNumber, int linuxColorNumber2){
     #ifdef __unix__    
         printf("\e[0m");  
-        printf("\e[%d;%dm %-50s", linuxColorNumber2, linuxColorNumber, str);
+        printf("\e[%d;%dm %-70s", linuxColorNumber2, linuxColorNumber, str);
         printf("\e[0m");  
         printf("\e[1;%dm", NORMAL_COLOR);
     #endif
     #ifdef _WIN32 
         SetConsoleTextAttribute(hConsole, windowsColorNumber);
-        printf("%-50s", str);
+        printf("%-70s", str);
         SetConsoleTextAttribute(hConsole, NORMAL_COLOR);
     #endif
     printf("\n");
@@ -157,6 +157,7 @@ void A_output(struct msg message) {
 
     printActivity("Sending a new Packet.");
     tolayer3(A, packet);
+    printActivity("Start a timer");
     starttimer(A, RETRANSMIT_RATE);
 }
 
@@ -166,7 +167,7 @@ void B_output(struct msg message) {
 }
 
 /* called from layer 3, when a packet arrives for layer 4 */
-void A_input(struct pkt packet) {
+void A_input(struct pkt receivedPacket) {
     printInfo("In A_input");
 
     if (previousSeqNum == lastAckSeqNum) {
@@ -174,19 +175,30 @@ void A_input(struct pkt packet) {
         return;
     }
 
-    int newCheckSum = packet.seqnum + packet.acknum;
+    int newCheckSum = receivedPacket.seqnum + receivedPacket.acknum;
 
-    if (packet.acknum == packet.seqnum && newCheckSum == packet.checksum) {
-        totalAck++;
-        char str[200];
-        sprintf(str, "%s%d", "Get Ack Successfully. Total Acknowledgment: ", totalAck);
-        printSuccess(str);
+    if(newCheckSum == receivedPacket.checksum){
+        if (receivedPacket.acknum == receivedPacket.seqnum) {
+            totalAck++;
+            char str[200];
+            sprintf(str, "%s%d", "Get Ack Successfully. Total Acknowledgment: ", totalAck);
+            printSuccess(str);
 
-        lastAckSeqNum = packet.acknum;
-        stoptimer(A);
-    } else
-        printError("Packet is Corrupted.");
+            lastAckSeqNum = receivedPacket.acknum;
+            printActivity("Stop Timer");
+            stoptimer(A);
+            return;
+        } else
+            printError("Get a Negative ACK from B.");
+    }
+    else
+        printError("Corrupted packet received.");
 
+//    printActivity("Stop Timer");
+//    stoptimer(A);
+//    printActivity("Retransmit Packet");
+//    tolayer3(A, packet);
+//    printActivity("Start a timer");
 }
 
 /* called when A's timer goes off */
@@ -225,17 +237,21 @@ void B_input(struct pkt packet) {
 
     if (packet.seqnum == lastSuccessfulSeqNum) {
         printActivity("Ignore this message because already get this message.");
+        printSuccess("Sending ACK");
     } else if (newCheckSum == packet.checksum) {
         totalSuccessfulPck++;
         char str[200];
         sprintf(str, "%s%d", "Get Message Successfully, Total Successful: ", totalSuccessfulPck);
         printSuccess(str);
 
+        printSuccess("Sending Packet to Layer5");
         lastSuccessfulSeqNum = packet.seqnum;
         tolayer5(B, packet.payload);
+
+        printSuccess("Sending ACK");
     } else {
         packet.acknum = lastSuccessfulSeqNum;
-        printError("Packet is Corrupted.");
+        printError("Corrupted packet received. Sending Negative ACK");
     }
 
     packet.checksum = packet.seqnum + packet.acknum;
@@ -581,7 +597,7 @@ void tolayer3(int AorB, struct pkt packet) {
     if (jimsrand() < lossprob) {
         nlost++;
         if (TRACE > 0)
-            printf("          TOLAYER3: packet being lost\n");
+            printError("          TOLAYER3: packet being lost");
         return;
     }
 
@@ -627,7 +643,7 @@ void tolayer3(int AorB, struct pkt packet) {
         else
             mypktptr->acknum = 999999;
         if (TRACE > 0)
-            printf("          TOLAYER3: packet being corrupted\n");
+            printError("          TOLAYER3: packet being corrupted");
     }
 
     if (TRACE > 2)

@@ -1,15 +1,15 @@
 # The set of languages for which implicit dependencies are needed:
 set(CMAKE_DEPENDS_LANGUAGES
-  "CXX"
+  "C"
   )
 # The set of files for implicit dependencies of each language:
-set(CMAKE_DEPENDS_CHECK_CXX
-  "C:/Users/User/Desktop/RTP/main.cpp" "C:/Users/User/Desktop/RTP/cmake-build-debug/CMakeFiles/RTP.dir/main.cpp.obj"
+set(CMAKE_DEPENDS_CHECK_C
+  "/home/ashraful/Desktop/RDT/rdt.c" "/home/ashraful/Desktop/RDT/cmake-build-debug/CMakeFiles/RTP.dir/rdt.c.o"
   )
-set(CMAKE_CXX_COMPILER_ID "GNU")
+set(CMAKE_C_COMPILER_ID "GNU")
 
 # The include file search paths:
-set(CMAKE_CXX_TARGET_INCLUDE_PATH
+set(CMAKE_C_TARGET_INCLUDE_PATH
   )
 
 # Targets to which this target links.
